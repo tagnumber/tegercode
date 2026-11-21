@@ -435,6 +435,36 @@ html,body,*{scrollbar-width:none}
 @media(prefers-reduced-motion:reduce){.studio-actions .outline:hover,.design-tile:hover{transform:none}}
 body:has(#tour:not([hidden])) .editor:has(#panel iframe)>.chat{display:flex}
 @media(min-width:921px){body:has(#tour:not([hidden])) .editor:has(#panel iframe){grid-template-columns:minmax(245px,1fr) minmax(0,1.65fr)}}
+
+/* Royal blue accents and visual controls */
+:root{--gold:#4175ff;--border:#2a3653;--studio-blue:#3970f6;--studio-blue-hover:#2458de;--studio-blue-ink:#7298ff}
+::selection{background:transparent;color:inherit}
+::-moz-selection{background:transparent;color:inherit}
+*{-webkit-tap-highlight-color:transparent}
+:where(button,a,input,textarea,select):focus-visible{outline-color:var(--studio-blue)}
+.primary,.ocean-hero .primary,#landing .top.wrap .outline,#auth .primary{background:#265be7;border-color:#3b6ff1;color:#fff}
+.primary:hover,.ocean-hero .primary:hover,#landing .top.wrap .outline:hover,#landing .top.wrap .outline:focus-visible,#auth .primary:hover{background:#1947cc;color:#fff;box-shadow:0 5px 22px #234fe95c}
+.ocean-hero em{background:linear-gradient(108deg,#7195ff,#3568ff 75%);background-clip:text;color:transparent}
+#landing .ocean-light{background:radial-gradient(ellipse at 50% 4%,#2945bb93,transparent 64%),radial-gradient(ellipse at 56% 30%,#17265c90,transparent 75%)}
+.gallery-cta,.tilt-action,.eyebrow i{color:var(--studio-blue-ink)}
+.auth input:focus-visible,.help-chat input:focus-visible{outline-color:var(--studio-blue)}
+.graph-block .port{border-color:#5484fe}.graph-block .port:hover,.graph-block .port.selected{background:#5680fa;box-shadow:0 0 12px #447bfc}
+.graph-wires g path,.graph-wires .draft-wire{stroke:#5484fe}.graph-wires g path[data-edge]:hover{stroke:#6d94ff}
+.graph-layout .graph-block:has([aria-pressed=true]){border-color:#4779eb}
+.design-tile:hover,.design-tile[aria-pressed=true],.code-files button[aria-pressed=true]{border-color:var(--studio-blue)}
+.design-tile[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--studio-blue);background:#192641}
+.design-group{min-width:0;border:0;margin:0 0 15px;padding:0}
+.design-group legend{padding:0;margin-bottom:7px;color:#d9e2f7;font-size:.85rem;font-weight:650}
+.design-group .design-tiles{margin-bottom:0}
+.option-tile strong{font-size:.76rem;overflow-wrap:anywhere}
+.option-mini{height:48px;border:1px solid #2a3b60;border-radius:6px;display:grid;align-content:center;gap:4px;padding:6px 11px;background:#0c1323}
+.option-mini i{display:block;height:3px;background:#6684c7;border-radius:2px;width:68%}
+.option-mini i:nth-child(2){width:87%;opacity:.52}.option-mini i:nth-child(3){width:42%;background:#3d72ff}
+.option-mini b{font-weight:600;line-height:1;font-size:1.15rem;color:#e6edff}
+.option-layout.variant-center{justify-items:center}.option-layout.variant-wide i{width:100%}
+.option-radius.variant-sharp i{border-radius:0}.option-radius.variant-round i{height:6px;border-radius:10px}
+.option-density.variant-compact{gap:2px}.option-density.variant-airy{gap:7px}
+.option-accent.variant-green i:last-child{background:#218565}.option-accent.variant-pink i:last-child{background:#bb4890}.option-accent.variant-orange i:last-child{background:#c66b36}
 </style></head>
 <body>
 <div id="landing">
@@ -1046,7 +1076,7 @@ function renderGraph(message=''){
   const card=(block)=>'<article class="graph-block" data-node="'+block.id+'" style="left:'+block.x+'px;top:'+block.y+'px"><div class="block-head"><button type="button" class="node-drag" data-drag="'+block.id+'" title="Переместить блок, в том числе клавишами со стрелками"><i aria-hidden="true">'+blockInfo[block.type].icon+'</i><strong>'+escape(names[block.id])+'</strong></button><button class="quiet" data-remove-block="'+block.id+'" aria-label="Удалить '+names[block.id]+'">×</button></div>'+'<small>'+acceptText[block.type]+'</small>'+
     (accepts[block.type]?'<button type="button" class="port in" data-port-in="'+block.id+'" aria-label="Подключить к '+names[block.id]+'"></button>':'')+
     (block.type!=='preview'?'<button type="button" class="port out" data-port-out="'+block.id+'" aria-label="Выход '+names[block.id]+'"></button>':'')+'</article>';
-  $('panel').innerHTML='<section class="graph"><div class="graph-tools"><strong>Полотно проекта</strong><button class="outline" data-library>Библиотека блоков</button></div><div class="graph-scroll"><div class="graph-board" style="height:'+height+'px;min-width:'+width+'px"><svg class="graph-wires" aria-hidden="true"><defs><marker id="wire-tip" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="#97ccff"/></marker></defs><g id="graph-paths"></g></svg>'+state.nodes.map(card).join('')+'</div></div><p id="graph-status" class="canvas-status" role="status">'+escape(message)+'</p></section><aside id="node-inspector" class="node-inspector" hidden aria-label="Настройки блока"></aside>';
+  $('panel').innerHTML='<section class="graph"><div class="graph-tools"><strong>Полотно проекта</strong><button class="outline" data-library>Библиотека блоков</button></div><div class="graph-scroll"><div class="graph-board" style="height:'+height+'px;min-width:'+width+'px"><svg class="graph-wires" aria-hidden="true"><defs><marker id="wire-tip" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="#447bfc"/></marker></defs><g id="graph-paths"></g></svg>'+state.nodes.map(card).join('')+'</div></div><p id="graph-status" class="canvas-status" role="status">'+escape(message)+'</p></section><aside id="node-inspector" class="node-inspector" hidden aria-label="Настройки блока"></aside>';
   wireSource=null;
   drawWires();
   renderInspector();
@@ -1220,7 +1250,7 @@ function renderInspector(){
   }else if(node.type==='design'){
     controls=designFields(node);
   }else if(node.type==='code'){
-    controls='<label>Название блока<input maxlength="55"'+field('name')+' value="'+escape(label)+'"></label><label>Исходный код<textarea id="block-source" rows="12" spellcheck="false"'+field('source')+'>'+escape(graphPreview(node.id)?.source||'')+'</textarea></label><button type="button" class="outline" data-run-block="'+node.id+'">Открыть предпросмотр</button><form id="block-request" class="block-request"><label>Запрос на создание или правку<input id="block-prompt" required maxlength="700" placeholder="Создай сайт для кофейни"></label><div class="block-actions"><button class="outline" type="submit">Применить шаблон</button><button id="gemini-generate" class="primary" type="button">Спросить Gemini</button></div><details class="api-settings"><summary>Подключение Gemini</summary><label>Адрес Worker<input id="gemini-worker" type="url" autocomplete="off"></label><label>Код доступа COSMO_ACCESS_TOKEN<input id="gemini-access" type="password" autocomplete="off"></label></details><button id="gemini-apply" class="primary" type="button" hidden>Применить результат</button><p id="block-result" role="status"></p></form>';
+    controls='<label>Название блока<input maxlength="55"'+field('name')+' value="'+escape(label)+'"></label><label>Исходный код<textarea id="block-source" rows="12" spellcheck="false"'+field('source')+'>'+escape(graphPreview(node.id)?.source||'')+'</textarea></label><button type="button" class="outline" data-run-block="'+node.id+'">Открыть предпросмотр</button><form id="block-request" class="block-request"><label>Запрос на создание или правку<input id="block-prompt" required maxlength="700" placeholder="Создай сайт для кофейни"></label><div class="block-actions"><button class="outline" type="submit">Применить шаблон</button><button id="gemini-generate" class="primary" type="button">Спросить Gemini</button></div><div id="gemini-challenge"></div><button id="gemini-apply" class="primary" type="button" hidden>Применить результат</button><p id="block-result" role="status"></p></form>';
   }else if(node.type==='agent'){
     controls='<label>Инструкции<textarea rows="6" maxlength="2000"'+field('description')+'>'+escape(node.description)+'</textarea></label><p>Модель не подключена. Этот блок сохраняет инструкции для агента.</p>';
   }else controls='<button class="outline" data-run-block="'+node.id+'">Открыть предпросмотр</button>';
@@ -1312,41 +1342,76 @@ canvasPanel.addEventListener('drop',(event)=>{
   addCanvasBlock(type,position,edge);
 });
 
-const geminiConnection={worker:'https://cosmo-api.t4421874.workers.dev',access:''};
+
+const geminiWorker='https://cosmo-api.t4421874.workers.dev';
+let turnstileScript;
+function loadTurnstile(){
+  if(window.turnstile)return Promise.resolve(window.turnstile);
+  return turnstileScript??=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async=true;
+    script.onload=()=>{
+      if(window.turnstile)resolve(window.turnstile);
+      else {turnstileScript=null;reject(new Error('Проверка Cloudflare недоступна.'));}
+    };
+    script.onerror=()=>{
+      script.remove();
+      turnstileScript=null;
+      reject(new Error('Не удалось загрузить проверку Cloudflare.'));
+    };
+    document.head.append(script);
+  });
+}
+function challengeToken(api,slot,sitekey){
+  return new Promise((resolve,reject)=>{
+    let widget;
+    const timeout=setTimeout(()=>finish(new Error('Время проверки истекло. Попробуй ещё раз.')),90000);
+    function finish(error,token){
+      clearTimeout(timeout);
+      if(widget!==undefined)api.remove(widget);
+      if(error)reject(error);else resolve(token);
+    }
+    try{
+      widget=api.render(slot,{
+        sitekey,action:'cosmo_generate',theme:'dark',size:'flexible',
+        callback:(token)=>finish(null,token),
+        'error-callback':()=>{finish(new Error('Проверка Cloudflare не прошла. Попробуй ещё раз.'));return true;},
+        'expired-callback':()=>finish(new Error('Время проверки истекло. Попробуй ещё раз.'))
+      });
+    }catch(error){finish(error);}
+  });
+}
 function wireGeminiControls(node){
-  const worker=$('gemini-worker');
-  const access=$('gemini-access');
   const generate=$('gemini-generate');
   const apply=$('gemini-apply');
   const status=$('block-result');
-  worker.value=geminiConnection.worker;
-  access.value=geminiConnection.access;
-  worker.oninput=()=>{geminiConnection.worker=worker.value;};
-  access.oninput=()=>{geminiConnection.access=access.value;};
+  const slot=$('gemini-challenge');
   let suggestion=null;
   generate.onclick=async()=>{
     suggestion=null;
     apply.hidden=true;
     const prompt=$('block-prompt').value.trim();
-    if(active.type!=='site'&&active.type!=='app'){status.textContent='Gemini сейчас подключён для сайтов и веб-приложений.';return;}
+    if(active.type!=='site'&&active.type!=='app'){status.textContent='Gemini доступен для сайтов и веб-приложений.';return;}
     if(!prompt){status.textContent='Напиши, что создать или изменить.';return;}
-    let base;
-    try{
-      base=new URL(worker.value.trim());
-      if(base.protocol!=='https:'||!base.hostname.endsWith('.workers.dev')||base.username||base.password)throw Error();
-    }catch{status.textContent='Укажи HTTPS-адрес своего Worker на workers.dev.';return;}
-    const token=access.value.trim();
-    if(!token){status.textContent='Открой «Подключение Gemini» и введи свой код доступа.';return;}
     const project=active;
     const before=graphPreview(node.id)?.source||'';
     const agent=graphInput(node,'agent');
     const design=graphInput(node,'design')||graphInput(agent,'design');
     generate.disabled=true;
-    status.textContent='Gemini готовит ответ…';
+    status.textContent='Проверяю подключение…';
     try{
-      const response=await fetch(new URL('/generate',base),{
-        method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
-        body:JSON.stringify({prompt,currentCode:before,design:JSON.stringify({theme:design?.style||project.style,...Object.fromEntries(Object.keys(designChoices).filter(key=>design?.[key]).map(key=>[key,design[key]])),instructions:agent?.description?.slice(0,1300)||''})}),
+      const config=await fetch(geminiWorker+'/config',{signal:AbortSignal.timeout(10000)}).then(response=>response.ok?response.json():null);
+      if(!config?.sitekey)throw new Error('Владелец ещё не настроил проверку Cloudflare для Gemini.');
+      const api=await loadTurnstile();
+      if(!slot.isConnected)return;
+      status.textContent='Проверка Cloudflare…';
+      const challenge=await challengeToken(api,slot,config.sitekey);
+      if(active!==project||$('gemini-generate')!==generate)return;
+      status.textContent='Gemini готовит ответ…';
+      const response=await fetch(geminiWorker+'/generate',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({prompt,challenge,currentCode:before,design:JSON.stringify({theme:design?.style||project.style,...Object.fromEntries(Object.keys(designChoices).filter(key=>design?.[key]).map(key=>[key,design[key]])),instructions:agent?.description?.slice(0,1300)||''})}),
         signal:AbortSignal.timeout(65000)
       });
       const result=await response.json();
@@ -1357,7 +1422,9 @@ function wireGeminiControls(node){
       status.textContent=result.message||(suggestion?'Код готов к применению.':'Gemini не вернул код.');
       apply.hidden=!suggestion;
     }catch(error){
-      status.textContent=error instanceof SyntaxError?'Worker не вернул JSON. Проверь, что код обработчика опубликован.':(error.message==='Failed to fetch'?'Не удалось связаться с Worker. Проверь адрес и публикацию.':error.message);
+      status.textContent=error instanceof SyntaxError||error.message==='Failed to fetch'
+        ?'Не удалось подключиться к Cosmo API. Проверь публикацию обновлённого Worker.'
+        :error.message;
     }finally{generate.disabled=false;}
   };
   apply.onclick=()=>{
@@ -1427,7 +1494,8 @@ function renderCodeEditor(){
 }
 const designChoices={
   layout:{label:'Композиция',options:{balanced:'По левому краю',center:'По центру',wide:'Широкая'}},
-  typography:{label:'Шрифт',options:{system:'Системный',serif:'С засечками',mono:'Моноширинный'}},
+  headingFont:{label:'Шрифт заголовков',options:{system:'Системный',serif:'Georgia',mono:'Моноширинный',humanist:'Trebuchet',rounded:'Verdana'}},
+  bodyFont:{label:'Шрифт основного текста',options:{system:'Системный',serif:'Georgia',mono:'Моноширинный',humanist:'Trebuchet',rounded:'Verdana'}},
   radius:{label:'Углы',options:{theme:'Как в теме',sharp:'Прямые',round:'Мягкие'}},
   density:{label:'Отступы',options:{regular:'Обычные',compact:'Компактные',airy:'Свободные'}},
   accent:{label:'Акцент',options:{theme:'Как в теме',blue:'Синий',green:'Зелёный',pink:'Розовый',orange:'Оранжевый'}}
@@ -1438,17 +1506,36 @@ function designFields(node){
     '<button class="design-tile" type="button" data-design-node="'+node.id+'" data-theme="'+key+'" aria-pressed="'+(node.style===key)+'">'+
     '<span class="design-mini" style="--tile-bg:'+theme.bg+';--tile-fg:'+theme.fg+';--tile-accent:'+theme.accent+';--tile-surface:'+theme.surface+'"><i></i><i></i><i></i></span>'+
     '<strong>'+theme.label+'</strong></button>').join('');
-  const controls=Object.entries(designChoices).map(([key,group])=>'<label>'+group.label+'<select data-block="'+node.id+'" data-field="'+key+'">'+
-    Object.entries(group.options).map(([value,label])=>'<option value="'+value+'"'+((node[key]||Object.keys(group.options)[0])===value?' selected':'')+'>'+label+'</option>').join('')+'</select></label>').join('');
-  return '<div class="styles design-tiles">'+tiles+'</div><div class="design-controls">'+controls+'</div>';
+
+  const groups=Object.entries(designChoices).map(([key,group])=>{
+    const current=node[key]||(key==='bodyFont'?node.typography:null)||Object.keys(group.options)[0];
+    const options=Object.entries(group.options).map(([value,label])=>{
+      const font=key==='headingFont'||key==='bodyFont';
+      const sample=font
+        ? '<b style="font-family:'+designFonts[value]+'">Аа</b><i></i>'
+        : '<i></i><i></i><i></i>';
+      return '<button type="button" class="design-tile option-tile" data-design-node="'+node.id+'" data-option="'+key+'" data-value="'+value+'" aria-pressed="'+(current===value)+'"><span class="option-mini option-'+key+' variant-'+value+'">'+sample+'</span><strong>'+label+'</strong></button>';
+    }).join('');
+    return '<fieldset class="design-group"><legend>'+group.label+'</legend><div class="design-tiles">'+options+'</div></fieldset>';
+  }).join('');
+  return '<fieldset class="design-group"><legend>Стиль</legend><div class="styles design-tiles">'+tiles+'</div></fieldset>'+groups;
 }
+const designFonts={
+  system:'system-ui,sans-serif',
+  serif:'Georgia,serif',
+  mono:'ui-monospace,monospace',
+  humanist:'Trebuchet MS,sans-serif',
+  rounded:'Verdana,sans-serif'
+};
 function designCSS(options){
   if(!options)return '';
-  const fonts={serif:'Georgia,serif',mono:'ui-monospace,monospace'};
+  const heading=designFonts[options.headingFont];
+  const body=designFonts[options.bodyFont||options.typography];
   const space={compact:'clamp(16px,3vw,33px)',airy:'clamp(34px,10vw,90px)'};
   const corners={sharp:'0',round:'26px'};
   const accent=accentColors[options.accent];
-  return (fonts[options.typography]?'body{font-family:'+fonts[options.typography]+'}':'')+
+  return (body?'p,li,label,td,th,figcaption,blockquote{font-family:'+body+'}':'')+
+    (heading?'h1,h2,h3,h4,h5,h6{font-family:'+heading+'}':'')+
     (space[options.density]?'main{padding:'+space[options.density]+'}':'')+
     (corners[options.radius]?'section,button,input{border-radius:'+corners[options.radius]+'}':'')+
     (accent?'button{background:'+accent+'}':'')+
@@ -1467,11 +1554,16 @@ settingsPanel.addEventListener('click',(event)=>{
   }
   const node=blockById(button.dataset.designNode);
   if(!node)return;
-  node.style=button.dataset.theme;
+  const {option,value,theme}=button.dataset;
+  if(option&&Object.hasOwn(designChoices[option]?.options||{},value))node[option]=value;
+  else if(theme&&Object.hasOwn(styles,theme))node.style=theme;
+  else return;
   delete active.canvasOutput;
   save();
   if(tab==='graph')renderInspector();
   else renderPanel();
+  const candidates=settingsPanel.querySelectorAll('[data-design-node]');
+  [...candidates].find(candidate=>candidate.dataset.designNode===node.id&&candidate.dataset.value===value&&candidate.dataset.theme===theme&&candidate.dataset.option===option)?.focus({preventScroll:true});
 });
 function showProfile(){
   $('profile-account').textContent=account||'Аккаунт';
