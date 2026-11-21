@@ -354,6 +354,34 @@ body{background:#08090b}
 @media(max-width:650px){#landing>main>.section,#landing>footer.wrap{width:calc(100% - 32px)}#landing .top.wrap{width:calc(100% - 24px)}}
 @media(max-width:380px){#landing-cards{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){#landing .top.wrap .outline:hover,.actions button:hover,.actions a:hover,.type-card.tilting .wireframe{transform:none}}
+
+/* Canvas and contextual settings */
+html,body,*{scrollbar-width:none}
+*::-webkit-scrollbar{width:0;height:0;display:none}
+#panel.graph-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+#panel.graph-layout.inspector-open{grid-template-columns:minmax(0,1fr) minmax(240px,33%)}
+.graph-layout .graph-scroll{max-height:70dvh;background:#0a0d13}
+.graph-layout .graph-board{background-color:#0a0d13;background-image:radial-gradient(#324153 1px,transparent 1px)}
+.graph-layout .graph-block{width:172px;padding:0 8px 11px;background:#141b25;text-align:center;gap:1px;border-color:#304257}
+.graph-layout .block-head{position:relative;display:block}
+.graph-layout .node-drag{display:grid;justify-items:center;gap:4px;width:100%;padding:12px 12px 4px;text-align:center}
+.node-drag i{display:grid;place-items:center;width:24px;height:24px;background:#20364c;border-radius:6px;font-size:16px;font-style:normal}
+.graph-layout .node-drag[aria-pressed="true"]{color:#d6efff}
+.graph-layout .graph-block:has([aria-pressed="true"]){border-color:#82bde8;box-shadow:0 0 18px #4378a933}
+.graph-layout .block-head .quiet{position:absolute;right:1px;top:1px;padding:0 4px;font-size:1rem}
+.graph-layout .graph-block small{font-size:.72rem}
+.node-inspector{background:#111823;border:1px solid #33465b;border-radius:12px;padding:13px;color:#edf5ff;min-width:0;align-self:start;max-height:75dvh;overflow:auto}
+.node-inspector header{display:flex;align-items:start;justify-content:space-between;border-bottom:1px solid #29384a;padding-bottom:8px;margin-bottom:11px}
+.node-inspector h2{margin:0;font-size:1.2rem}.node-inspector small{color:#a6b9d0}.node-inspector header button{font-size:1.1rem}
+.inspector-fields,.inspector-fields label,.block-request{display:grid;gap:8px}.inspector-fields label{font-size:.87rem}
+.inspector-fields select{width:100%;padding:8px;border-radius:8px;font:inherit}
+.inspector-fields textarea#block-source{font:12px/1.5 ui-monospace,monospace}
+.block-request{margin-top:5px;border-top:1px solid #29384a;padding-top:10px}
+.block-request p{font-size:.8rem;margin:0}.block-request p:empty{display:none}
+@media(max-width:1150px){#panel.graph-layout.inspector-open{grid-template-columns:minmax(0,1fr)}}
+.editor:has(.graph-layout){grid-template-columns:minmax(0,1fr)}
+.editor:has(.graph-layout)>.chat{display:none}
+@media(min-width:760px){#panel.graph-layout.inspector-open{grid-template-columns:minmax(0,1fr) minmax(230px,31%)}}
 </style></head>
 <body>
 <div id="landing">
@@ -459,6 +487,7 @@ function showStudio() {
   render();
 }
 function create(type) {
+  selectedBlock=null;
   const labels = {site:'Мой сайт',app:'Мои задачи',bot:'Мой Telegram-бот'};
   active = {id:globalThis.crypto?.randomUUID?.() || String(Date.now()),type,title:labels[type]||kinds[type].name,description:type==='bot'?'Привет! Чем могу помочь?':kinds[type].details,style:'minimal',messages:[{who:'assistant',text:kinds[type].help}]};
   projects.unshift(active);
@@ -533,6 +562,7 @@ function botCode(p) {
   ].join('\n');
 }
 function renderPanel() {
+  $('panel').classList?.toggle('graph-layout',tab==='graph');
   document.querySelectorAll('[data-tab]').forEach((b)=>{b.classList.toggle('active',b.dataset.tab===tab);b.setAttribute('aria-pressed',b.dataset.tab===tab);});
   if(tab==='graph'){
     renderGraph();
@@ -612,7 +642,7 @@ document.addEventListener('click',(e)=>{
   const b=e.target.closest('button');
   if(!b)return;
   if(b.dataset.type){if(account)create(b.dataset.type);else openAuth(b.dataset.type);return;}
-  if(b.dataset.id){active=projects.find((p)=>p.id===b.dataset.id);tab='graph';render();return;}
+  if(b.dataset.id){selectedBlock=null;active=projects.find((p)=>p.id===b.dataset.id);tab='graph';render();return;}
   if(b.dataset.tab){tab=b.dataset.tab;renderPanel();return;}
   if(b.dataset.style){active.style=b.dataset.style;delete active.canvasOutput;save();renderPanel();return;}
   if(b.hasAttribute('data-start')){if(account)showStudio();else openAuth();}
@@ -900,18 +930,21 @@ document.querySelectorAll('[data-question]').forEach((button)=>{
 });
 
 const blockInfo={
+  start:{label:'Старт',icon:'▷',detail:'Вводные проекта'},
+  agent:{label:'ИИ-агент',icon:'✦',detail:'Инструкции для агента'},
+
   content:{label:'Контент',icon:'¶'},
   design:{label:'Дизайн',icon:'◈'},
   code:{label:'Код',icon:'⌘'},
   preview:{label:'Предпросмотр',icon:'◉'}
 };
-const accepts={code:['content','design'],preview:['code']};
+const accepts={design:['start'],agent:['start','content'],code:['content','design','start','agent'],preview:['code']};
 function newBlock(type,id){
   return {id,type,style:active.style,title:active.title,description:active.description,source:''};
 }
 function graph(){
   if(!active.graph){
-    active.graph={serial:4,nodes:[newBlock('design','b1'),newBlock('code','b2'),newBlock('preview','b3')],edges:[['b1','b2'],['b2','b3']]};
+    active.graph={serial:4,nodes:[newBlock('start','b1'),newBlock('design','b2'),newBlock('code','b3')],edges:[['b1','b2'],['b2','b3']]};
     save();
   }
   return active.graph;
@@ -922,7 +955,7 @@ function blockById(id){
 function connectBlocks(from,to){
   const source=blockById(from);
   const target=blockById(to);
-  if(!source||!target||!accepts[target.type]?.includes(source.type))return 'Контент и дизайн подключаются к коду, код — к предпросмотру.';
+  if(!source||!target||!accepts[target.type]?.includes(source.type))return 'Этот тип блока не поддерживает выбранный вход.';
   const state=graph();
   state.edges=state.edges.filter(([id,targetId])=>targetId!==to||blockById(id).type!==source.type);
   state.edges.push([from,to]);
@@ -932,12 +965,11 @@ function connectBlocks(from,to){
 function graphPreview(id){
   const state=graph();
   const input=(node,type)=>state.edges.filter(([,to])=>to===node.id).map(([from])=>blockById(from)).find((block)=>block?.type===type);
-  const preview=blockById(id);
-  if(preview?.type!=='preview')return null;
-  const code=input(preview,'code');
+  const node=blockById(id);
+  const code=node?.type==='code'?node:node?.type==='preview'?input(node,'code'):null;
   if(!code)return null;
   const design=input(code,'design');
-  const content=input(code,'content');
+  const content=input(code,'content')||input(code,'start')||(design&&input(design,'start'));
   const project={...active,style:design?.style??active.style,title:content?.title||active.title,description:content?.description??active.description};
   if(active.type==='bot')return {source:code.source.trim()?code.source:botCode(project),preview:html(project)};
   const source=code.source.trim()?code.source:html(project);
@@ -946,32 +978,28 @@ function graphPreview(id){
 function renderGraph(message=''){
   const state=graph();
   const names={};
+  $('panel').classList?.toggle('graph-layout',true);
   const totals={};
-  const acceptText={code:'Принимает контент и дизайн',preview:'Принимает код'};
+  const acceptText={start:'Вводные проекта',design:'Стиль и темы',code:'Редактор и запросы',agent:'Инструкции и входные данные',content:'Название и описание',preview:'Результат сборки'};
   for(const block of state.nodes){
     totals[block.type]=(totals[block.type]||0)+1;
     names[block.id]=blockInfo[block.type].label+' '+totals[block.type];
   }
-  const lanes={content:0,design:0,code:1,preview:2};
-  const rows=[0,0,0];
+  const lanes={start:0,content:0,design:1,code:2,agent:1,preview:3};
+  const rows=[0,0,0,0];
   for(const block of state.nodes){
     const lane=lanes[block.type];
     const row=rows[lane]++;
-    block.x??=26+lane*258;
-    block.y??=30+row*205;
+    block.x??=26+lane*237;
+    block.y??=62+row*145;
   }
-  const height=Math.max(345,...state.nodes.map((block)=>block.y+205));
-  const fields=(block)=>{
-    if(block.type==='design')return '<label>Тема<select data-block="'+block.id+'" data-field="style">'+Object.entries(styles).map(([key,style])=>'<option value="'+key+'"'+(key===block.style?' selected':'')+'>'+style.label+'</option>').join('')+'</select></label>';
-    if(block.type==='content')return '<label>Название<input maxlength="90" data-block="'+block.id+'" data-field="title" value="'+escape(block.title)+'"></label><label>Описание<textarea rows="2" maxlength="500" data-block="'+block.id+'" data-field="description">'+escape(block.description)+'</textarea></label>';
-    if(block.type==='code')return '<label>Свой код<textarea rows="3" spellcheck="false" data-block="'+block.id+'" data-field="source" placeholder="Пусто — собрать из шаблона">'+escape(block.source)+'</textarea></label>';
-    return '<button class="outline" data-run-block="'+block.id+'">Проверить результат</button>';
-  };
-  const card=(block)=>'<article class="graph-block" data-node="'+block.id+'" style="left:'+block.x+'px;top:'+block.y+'px"><div class="block-head"><button type="button" class="node-drag" data-drag="'+block.id+'" title="Переместить блок, в том числе клавишами со стрелками">'+blockInfo[block.type].icon+' '+names[block.id]+'</button><button class="quiet" data-remove-block="'+block.id+'" aria-label="Удалить '+names[block.id]+'">×</button></div>'+(acceptText[block.type]?'<small>'+acceptText[block.type]+'</small>':'')+fields(block)+
+  const height=Math.max(370,...state.nodes.map((block)=>block.y+145));
+  const width=Math.max(735,...state.nodes.map((block)=>block.x+208));
+  const card=(block)=>'<article class="graph-block" data-node="'+block.id+'" style="left:'+block.x+'px;top:'+block.y+'px"><div class="block-head"><button type="button" class="node-drag" data-drag="'+block.id+'" title="Переместить блок, в том числе клавишами со стрелками"><i aria-hidden="true">'+blockInfo[block.type].icon+'</i><strong>'+blockInfo[block.type].label+'</strong></button><button class="quiet" data-remove-block="'+block.id+'" aria-label="Удалить '+names[block.id]+'">×</button></div>'+'<small>'+acceptText[block.type]+'</small>'+
     (accepts[block.type]?'<button type="button" class="port in" data-port-in="'+block.id+'" aria-label="Подключить к '+names[block.id]+'"></button>':'')+
     (block.type!=='preview'?'<button type="button" class="port out" data-port-out="'+block.id+'" aria-label="Выход '+names[block.id]+'"></button>':'')+'</article>';
   const options=(blocks)=>blocks.map((block)=>'<option value="'+names[block.id]+'"></option>').join('');
-  $('panel').innerHTML='<section class="graph"><div class="graph-tools"><strong>Добавить блок</strong>'+Object.entries(blockInfo).map(([type,info])=>'<button class="outline" data-add-block="'+type+'">+ '+info.label+'</button>').join('')+'</div><div class="graph-scroll"><div class="graph-board" style="height:'+height+'px"><svg class="graph-wires" aria-hidden="true"><defs><marker id="wire-tip" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="#97ccff"/></marker></defs><g id="graph-paths"></g></svg>'+state.nodes.map(card).join('')+'</div></div><div class="graph-connections"><form id="connect-blocks"><label>Из<input id="graph-from" list="out-nodes" placeholder="Выбери блок" required autocomplete="off"><datalist id="out-nodes">'+options(state.nodes.filter((block)=>block.type!=='preview'))+'</datalist></label><label>В<input id="graph-to" list="in-nodes" placeholder="Найди получателя" required autocomplete="off"><datalist id="in-nodes">'+options(state.nodes.filter((block)=>accepts[block.type]))+'</datalist></label><button class="primary" type="submit">Соединить</button></form><p id="graph-status" role="status">'+escape(message)+'</p><ul>'+state.edges.map(([from,to])=>'<li><span>'+names[from]+' → '+names[to]+'</span><button class="quiet" data-unlink="'+from+','+to+'" aria-label="Разъединить '+names[from]+' и '+names[to]+'">×</button></li>').join('')+'</ul></div></section>';
+  $('panel').innerHTML='<section class="graph"><div class="graph-tools"><strong>Добавить блок</strong>'+Object.entries(blockInfo).map(([type,info])=>'<button class="outline" data-add-block="'+type+'">+ '+info.label+'</button>').join('')+'</div><div class="graph-scroll"><div class="graph-board" style="height:'+height+'px;min-width:'+width+'px"><svg class="graph-wires" aria-hidden="true"><defs><marker id="wire-tip" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="#97ccff"/></marker></defs><g id="graph-paths"></g></svg>'+state.nodes.map(card).join('')+'</div></div><div class="graph-connections"><form id="connect-blocks"><label>Из<input id="graph-from" list="out-nodes" placeholder="Выбери блок" required autocomplete="off"><datalist id="out-nodes">'+options(state.nodes.filter((block)=>block.type!=='preview'))+'</datalist></label><label>В<input id="graph-to" list="in-nodes" placeholder="Найди получателя" required autocomplete="off"><datalist id="in-nodes">'+options(state.nodes.filter((block)=>accepts[block.type]))+'</datalist></label><button class="primary" type="submit">Соединить</button></form><p id="graph-status" role="status">'+escape(message)+'</p><ul>'+state.edges.map(([from,to])=>'<li><span>'+names[from]+' → '+names[to]+'</span><button class="quiet" data-unlink="'+from+','+to+'" aria-label="Разъединить '+names[from]+' и '+names[to]+'">×</button></li>').join('')+'</ul></div></section><aside id="node-inspector" class="node-inspector" hidden aria-label="Настройки блока"></aside>';
   $('connect-blocks').onsubmit=(event)=>{
     event.preventDefault();
     const find=(value)=>Object.keys(names).find((id)=>names[id].toLowerCase()===value.trim().toLowerCase());
@@ -981,6 +1009,7 @@ function renderGraph(message=''){
   };
   wireSource=null;
   drawWires();
+  renderInspector();
 }
 $('panel').addEventListener('input',(event)=>{
   const {block,field}=event.target.dataset;
@@ -995,8 +1024,11 @@ $('panel').addEventListener('click',(event)=>{
   const {addBlock,removeBlock,unlink,runBlock}=button.dataset;
   if(addBlock){
     if(state.nodes.length>=24){$('graph-status').textContent='На полотне уже 24 блока.';return;}
-    state.nodes.push(newBlock(addBlock,'b'+state.serial++));
+    const added=newBlock(addBlock,'b'+state.serial++);
+    state.nodes.push(added);
+    selectedBlock=added.id;
   }else if(removeBlock){
+    if(selectedBlock===removeBlock)selectedBlock=null;
     state.nodes=state.nodes.filter((block)=>block.id!==removeBlock);
     state.edges=state.edges.filter((edge)=>!edge.includes(removeBlock));
   }else if(unlink){
@@ -1048,11 +1080,12 @@ $('panel').addEventListener('pointerdown',(event)=>{
   const block=blockById(handle.dataset.drag);
   const node=handle.closest('[data-node]');
   const board=node.parentElement;
+  nodeDragged=false;
   const start={x:event.clientX,y:event.clientY,left:block.x,top:block.y};
   handle.setPointerCapture(event.pointerId);
   node.classList.add('moving');
   const move=(next)=>{
-    if(next.pointerId===event.pointerId)moveNode(block,node,board,start.left+next.clientX-start.x,start.top+next.clientY-start.y);
+    if(next.pointerId===event.pointerId&&Math.hypot(next.clientX-start.x,next.clientY-start.y)>3){nodeDragged=true;moveNode(block,node,board,start.left+next.clientX-start.x,start.top+next.clientY-start.y);}
   };
   const stop=()=>{
     handle.removeEventListener('pointermove',move);
@@ -1088,6 +1121,70 @@ $('panel').addEventListener('click',(event)=>{
 });
 window.addEventListener('resize',()=>{if(tab==='graph')drawWires();});
 
+
+
+let selectedBlock=null;
+let nodeDragged=false;
+function codeCommand(block,request){
+  const text=request.trim();
+  const existing=graphPreview(block.id)?.source||'';
+  const substitution=text.match(/^замени\s+[«"](.+?)[»"]\s+на\s+[«"](.*?)[»"]\s*\.?$/is);
+  if(substitution){
+    const [,before,after]=substitution;
+    if(!existing.includes(before))return 'Этот фрагмент не найден. Код сохранён без правок.';
+    block.source=existing.replace(before,()=>after);
+    return 'Заменил первый найденный фрагмент кода.';
+  }
+  const site=text.match(/^создай(?: мне)? сайт(?:\s+(?:для|про|о))?\s+(.+)$/is);
+  const template=/^(?:создай код|собери шаблон)$/i.test(text);
+  if(!template&&(!site||active.type!=='site'))return 'Модель ещё не подключена. Доступны «создай код», «создай сайт для …» и «замени „фрагмент“ на „новый текст“» (с кавычками «»).';
+  if(block.source.trim())return 'В блоке уже есть код. Для точечной правки используй «замени «фрагмент» на «новый текст»».';
+  if(site){
+    const title=site[1].trim().slice(0,90);
+    const original=existing;
+    if(!title)return 'Укажи название сайта.';
+    block.source=original.replace(/<title>[^]*?<\/title>/i,()=>'<title>'+escape(title)+'</title>')
+      .replace(/<h1>[^]*?<\/h1>/i,()=>'<h1>'+escape(title)+'</h1>');
+  }else block.source=existing;
+  return 'Код собран из шаблона проекта.';
+}
+function renderInspector(){
+  const inspector=$('node-inspector');
+  const node=selectedBlock?blockById(selectedBlock):null;
+  inspector.hidden=!node;
+  $('panel').classList?.toggle('inspector-open',Boolean(node));
+  $('panel').querySelectorAll?.('[data-drag]').forEach((handle)=>handle.setAttribute('aria-pressed',String(handle.dataset.drag===selectedBlock)));
+  if(!node)return;
+  const label=blockInfo[node.type].label;
+  const field=(name)=>' data-block="'+node.id+'" data-field="'+name+'"';
+  let controls='';
+  if(node.type==='start'||node.type==='content'){
+    controls='<label>Название<input maxlength="90"'+field('title')+' value="'+escape(node.title)+'"></label><label>Описание<textarea rows="5" maxlength="500"'+field('description')+'>'+escape(node.description)+'</textarea></label>';
+  }else if(node.type==='design'){
+    controls='<label>Тема<select'+field('style')+'>'+Object.entries(styles).map(([key,style])=>'<option value="'+key+'"'+(key===node.style?' selected':'')+'>'+style.label+'</option>').join('')+'</select></label>';
+  }else if(node.type==='code'){
+    controls='<label>Исходный код<textarea id="block-source" rows="12" spellcheck="false"'+field('source')+'>'+escape(graphPreview(node.id)?.source||'')+'</textarea></label><button type="button" class="outline" data-run-block="'+node.id+'">Открыть предпросмотр</button><form id="block-request" class="block-request"><label>Запрос на создание или правку<input id="block-prompt" required maxlength="700" placeholder="Создай сайт для кофейни"></label><button class="primary" type="submit">Применить</button><small>Шаблоны и точечная замена в коде</small><p id="block-result" role="status"></p></form>';
+  }else if(node.type==='agent'){
+    controls='<label>Инструкции<textarea rows="6" maxlength="2000"'+field('description')+'>'+escape(node.description)+'</textarea></label><p>Модель не подключена. Этот блок сохраняет инструкции для агента.</p>';
+  }else controls='<button class="outline" data-run-block="'+node.id+'">Открыть предпросмотр</button>';
+  inspector.innerHTML='<header><div><small>Настройки блока</small><h2>'+label+'</h2></div><button type="button" class="quiet" id="inspector-close" aria-label="Закрыть настройки">×</button></header><div class="inspector-fields">'+controls+'</div>';
+  $('inspector-close').onclick=()=>{selectedBlock=null;renderInspector();drawWires();};
+  if(node.type==='code')$('block-request').onsubmit=(event)=>{
+    event.preventDefault();
+    $('block-result').textContent=codeCommand(node,$('block-prompt').value);
+    $('block-source').value=graphPreview(node.id)?.source||'';
+    delete active.canvasOutput;
+    save();
+  };
+}
+$('panel').addEventListener('click',(event)=>{
+  const handle=event.target.closest('[data-drag]');
+  if(!handle||tab!=='graph')return;
+  if(nodeDragged){nodeDragged=false;return;}
+  selectedBlock=handle.dataset.drag;
+  renderInspector();
+  drawWires();
+});
 
 document.querySelectorAll("img[data-cosmo]").forEach(img => { img.src=bundledCosmo; });
 </script>
