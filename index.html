@@ -382,6 +382,24 @@ html,body,*{scrollbar-width:none}
 .editor:has(.graph-layout){grid-template-columns:minmax(0,1fr)}
 .editor:has(.graph-layout)>.chat{display:none}
 @media(min-width:760px){#panel.graph-layout.inspector-open{grid-template-columns:minmax(0,1fr) minmax(230px,31%)}}
+
+/* Full-height canvas with a switchable block library */
+.editor:has(.graph-layout) .work{height:calc(100dvh - 66px);min-height:0;padding-bottom:12px;display:flex;flex-direction:column}
+#panel.graph-layout,#panel.graph-layout.inspector-open{flex:1;min-height:0;grid-template-columns:minmax(0,1fr) clamp(235px,28%,360px);grid-template-rows:minmax(0,1fr)}
+.graph-layout .graph{min-height:0;grid-template-rows:auto minmax(0,1fr) auto}
+.graph-layout .graph-tools{justify-content:space-between}
+.graph-layout .graph-scroll{max-height:none;min-height:0}
+.graph-layout .graph-board{min-height:100%}
+.graph-layout .graph-connections{max-height:24dvh;overflow:auto}
+.graph-layout .node-inspector{align-self:stretch;max-height:none;min-height:0;overflow:auto}
+.library-items{display:grid;gap:8px}
+.library-items .library-item{justify-content:flex-start;gap:10px;padding:9px 10px;cursor:grab;white-space:normal}
+.library-item span{display:grid;place-items:center;min-width:25px;height:25px;background:#20364c;color:#b4e0ff;border-radius:6px}
+.palette-dragging .graph-wires g path[data-edge]{pointer-events:stroke;stroke-width:16px;stroke:#81b7ef59}
+.palette-dragging .graph-wires g path[data-edge]:hover{stroke:#99d2ff}
+.block-actions{display:flex;gap:6px;flex-wrap:wrap}.block-actions button{font-size:.8rem;padding:6px 8px}
+.api-settings{font-size:.85rem}.api-settings label{margin:7px 0}
+@media(max-width:720px){.editor:has(.graph-layout) .work{height:auto;min-height:100dvh}#panel.graph-layout,#panel.graph-layout.inspector-open{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto}.graph-layout .graph-scroll{height:55dvh}.graph-layout .node-inspector{min-height:230px}}
 </style></head>
 <body>
 <div id="landing">
@@ -938,7 +956,7 @@ const blockInfo={
   code:{label:'Код',icon:'⌘'},
   preview:{label:'Предпросмотр',icon:'◉'}
 };
-const accepts={design:['start'],agent:['start','content'],code:['content','design','start','agent'],preview:['code']};
+const accepts={design:['start','content'],content:['start'],agent:['start','content','design'],code:['content','design','start','agent'],preview:['code']};
 function newBlock(type,id){
   return {id,type,style:active.style,title:active.title,description:active.description,source:''};
 }
@@ -962,15 +980,19 @@ function connectBlocks(from,to){
   save();
   return '';
 }
+function graphInput(node,type){
+  return node&&graph().edges.filter(([,to])=>to===node.id).map(([from])=>blockById(from)).find((block)=>block?.type===type);
+}
 function graphPreview(id){
-  const state=graph();
-  const input=(node,type)=>state.edges.filter(([,to])=>to===node.id).map(([from])=>blockById(from)).find((block)=>block?.type===type);
+  const input=graphInput;
   const node=blockById(id);
   const code=node?.type==='code'?node:node?.type==='preview'?input(node,'code'):null;
   if(!code)return null;
-  const design=input(code,'design');
-  const content=input(code,'content')||input(code,'start')||(design&&input(design,'start'));
-  const project={...active,style:design?.style??active.style,title:content?.title||active.title,description:content?.description??active.description};
+  const agent=input(code,'agent');
+  const design=input(code,'design')||input(agent,'design');
+  const content=input(code,'content')||input(design,'content')||input(agent,'content');
+  const brief=content||input(code,'start')||input(design,'start')||input(agent,'start')||input(content,'start');
+  const project={...active,style:design?.style??active.style,title:brief?.title||active.title,description:brief?.description??active.description};
   if(active.type==='bot')return {source:code.source.trim()?code.source:botCode(project),preview:html(project)};
   const source=code.source.trim()?code.source:html(project);
   return {source,preview:source};
@@ -999,7 +1021,7 @@ function renderGraph(message=''){
     (accepts[block.type]?'<button type="button" class="port in" data-port-in="'+block.id+'" aria-label="Подключить к '+names[block.id]+'"></button>':'')+
     (block.type!=='preview'?'<button type="button" class="port out" data-port-out="'+block.id+'" aria-label="Выход '+names[block.id]+'"></button>':'')+'</article>';
   const options=(blocks)=>blocks.map((block)=>'<option value="'+names[block.id]+'"></option>').join('');
-  $('panel').innerHTML='<section class="graph"><div class="graph-tools"><strong>Добавить блок</strong>'+Object.entries(blockInfo).map(([type,info])=>'<button class="outline" data-add-block="'+type+'">+ '+info.label+'</button>').join('')+'</div><div class="graph-scroll"><div class="graph-board" style="height:'+height+'px;min-width:'+width+'px"><svg class="graph-wires" aria-hidden="true"><defs><marker id="wire-tip" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="#97ccff"/></marker></defs><g id="graph-paths"></g></svg>'+state.nodes.map(card).join('')+'</div></div><div class="graph-connections"><form id="connect-blocks"><label>Из<input id="graph-from" list="out-nodes" placeholder="Выбери блок" required autocomplete="off"><datalist id="out-nodes">'+options(state.nodes.filter((block)=>block.type!=='preview'))+'</datalist></label><label>В<input id="graph-to" list="in-nodes" placeholder="Найди получателя" required autocomplete="off"><datalist id="in-nodes">'+options(state.nodes.filter((block)=>accepts[block.type]))+'</datalist></label><button class="primary" type="submit">Соединить</button></form><p id="graph-status" role="status">'+escape(message)+'</p><ul>'+state.edges.map(([from,to])=>'<li><span>'+names[from]+' → '+names[to]+'</span><button class="quiet" data-unlink="'+from+','+to+'" aria-label="Разъединить '+names[from]+' и '+names[to]+'">×</button></li>').join('')+'</ul></div></section><aside id="node-inspector" class="node-inspector" hidden aria-label="Настройки блока"></aside>';
+  $('panel').innerHTML='<section class="graph"><div class="graph-tools"><strong>Полотно проекта</strong><button class="outline" data-library>Библиотека блоков</button></div><div class="graph-scroll"><div class="graph-board" style="height:'+height+'px;min-width:'+width+'px"><svg class="graph-wires" aria-hidden="true"><defs><marker id="wire-tip" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" fill="#97ccff"/></marker></defs><g id="graph-paths"></g></svg>'+state.nodes.map(card).join('')+'</div></div><div class="graph-connections"><form id="connect-blocks"><label>Из<input id="graph-from" list="out-nodes" placeholder="Выбери блок" required autocomplete="off"><datalist id="out-nodes">'+options(state.nodes.filter((block)=>block.type!=='preview'))+'</datalist></label><label>В<input id="graph-to" list="in-nodes" placeholder="Найди получателя" required autocomplete="off"><datalist id="in-nodes">'+options(state.nodes.filter((block)=>accepts[block.type]))+'</datalist></label><button class="primary" type="submit">Соединить</button></form><p id="graph-status" role="status">'+escape(message)+'</p><ul>'+state.edges.map(([from,to])=>'<li><span>'+names[from]+' → '+names[to]+'</span><button class="quiet" data-unlink="'+from+','+to+'" aria-label="Разъединить '+names[from]+' и '+names[to]+'">×</button></li>').join('')+'</ul></div></section><aside id="node-inspector" class="node-inspector" hidden aria-label="Настройки блока"></aside>';
   $('connect-blocks').onsubmit=(event)=>{
     event.preventDefault();
     const find=(value)=>Object.keys(names).find((id)=>names[id].toLowerCase()===value.trim().toLowerCase());
@@ -1022,11 +1044,11 @@ $('panel').addEventListener('click',(event)=>{
   if(!button||tab!=='graph')return;
   const state=graph();
   const {addBlock,removeBlock,unlink,runBlock}=button.dataset;
+  if(button.hasAttribute('data-library')){selectedBlock=null;renderInspector();return;}
   if(addBlock){
     if(state.nodes.length>=24){$('graph-status').textContent='На полотне уже 24 блока.';return;}
-    const added=newBlock(addBlock,'b'+state.serial++);
-    state.nodes.push(added);
-    selectedBlock=added.id;
+    addCanvasBlock(addBlock);
+    return;
   }else if(removeBlock){
     if(selectedBlock===removeBlock)selectedBlock=null;
     state.nodes=state.nodes.filter((block)=>block.id!==removeBlock);
@@ -1064,7 +1086,7 @@ function drawWires(){
     if(!start||!end)return '';
     const pull=Math.max(45,Math.abs(end[0]-start[0])*.42);
     const rise=Math.abs(start[1]-end[1])<18?28:0;
-    return '<path d="M '+start.join(' ')+' C '+(start[0]+pull)+' '+(start[1]-rise)+', '+(end[0]-pull)+' '+(end[1]-rise)+', '+end.join(' ')+'" marker-end="url(#wire-tip)"/>';
+    return '<path data-edge="'+from+','+to+'" d="M '+start.join(' ')+' C '+(start[0]+pull)+' '+(start[1]-rise)+', '+(end[0]-pull)+' '+(end[1]-rise)+', '+end.join(' ')+'" marker-end="url(#wire-tip)"/>';
   }).join('');
 }
 function moveNode(block,node,board,x,y){
@@ -1151,10 +1173,14 @@ function codeCommand(block,request){
 function renderInspector(){
   const inspector=$('node-inspector');
   const node=selectedBlock?blockById(selectedBlock):null;
-  inspector.hidden=!node;
-  $('panel').classList?.toggle('inspector-open',Boolean(node));
+  inspector.hidden=false;
+  inspector.classList?.toggle('block-library',!node);
+  $('panel').classList?.toggle('inspector-open',true);
   $('panel').querySelectorAll?.('[data-drag]').forEach((handle)=>handle.setAttribute('aria-pressed',String(handle.dataset.drag===selectedBlock)));
-  if(!node)return;
+  if(!node){
+    inspector.innerHTML='<header><div><h2>Библиотека блоков</h2><small>Перетащи блок на полотно или на связь.</small></div></header><div class="library-items">'+Object.entries(blockInfo).map(([type,info])=>'<button type="button" class="outline library-item" draggable="true" data-add-block="'+type+'"><span aria-hidden="true">'+info.icon+'</span>'+info.label+'</button>').join('')+'</div>';
+    return;
+  }
   const label=blockInfo[node.type].label;
   const field=(name)=>' data-block="'+node.id+'" data-field="'+name+'"';
   let controls='';
@@ -1163,13 +1189,15 @@ function renderInspector(){
   }else if(node.type==='design'){
     controls='<label>Тема<select'+field('style')+'>'+Object.entries(styles).map(([key,style])=>'<option value="'+key+'"'+(key===node.style?' selected':'')+'>'+style.label+'</option>').join('')+'</select></label>';
   }else if(node.type==='code'){
-    controls='<label>Исходный код<textarea id="block-source" rows="12" spellcheck="false"'+field('source')+'>'+escape(graphPreview(node.id)?.source||'')+'</textarea></label><button type="button" class="outline" data-run-block="'+node.id+'">Открыть предпросмотр</button><form id="block-request" class="block-request"><label>Запрос на создание или правку<input id="block-prompt" required maxlength="700" placeholder="Создай сайт для кофейни"></label><button class="primary" type="submit">Применить</button><small>Шаблоны и точечная замена в коде</small><p id="block-result" role="status"></p></form>';
+    controls='<label>Исходный код<textarea id="block-source" rows="12" spellcheck="false"'+field('source')+'>'+escape(graphPreview(node.id)?.source||'')+'</textarea></label><button type="button" class="outline" data-run-block="'+node.id+'">Открыть предпросмотр</button><form id="block-request" class="block-request"><label>Запрос на создание или правку<input id="block-prompt" required maxlength="700" placeholder="Создай сайт для кофейни"></label><div class="block-actions"><button class="outline" type="submit">Применить шаблон</button><button id="gemini-generate" class="primary" type="button">Спросить Gemini</button></div><details class="api-settings"><summary>Подключение Gemini</summary><label>Адрес Worker<input id="gemini-worker" type="url" autocomplete="off"></label><label>Код доступа COSMO_ACCESS_TOKEN<input id="gemini-access" type="password" autocomplete="off"></label></details><button id="gemini-apply" class="primary" type="button" hidden>Применить результат</button><p id="block-result" role="status"></p></form>';
   }else if(node.type==='agent'){
     controls='<label>Инструкции<textarea rows="6" maxlength="2000"'+field('description')+'>'+escape(node.description)+'</textarea></label><p>Модель не подключена. Этот блок сохраняет инструкции для агента.</p>';
   }else controls='<button class="outline" data-run-block="'+node.id+'">Открыть предпросмотр</button>';
   inspector.innerHTML='<header><div><small>Настройки блока</small><h2>'+label+'</h2></div><button type="button" class="quiet" id="inspector-close" aria-label="Закрыть настройки">×</button></header><div class="inspector-fields">'+controls+'</div>';
   $('inspector-close').onclick=()=>{selectedBlock=null;renderInspector();drawWires();};
-  if(node.type==='code')$('block-request').onsubmit=(event)=>{
+  if(node.type!=='code')return;
+  wireGeminiControls(node);
+  $('block-request').onsubmit=(event)=>{
     event.preventDefault();
     $('block-result').textContent=codeCommand(node,$('block-prompt').value);
     $('block-source').value=graphPreview(node.id)?.source||'';
@@ -1185,6 +1213,133 @@ $('panel').addEventListener('click',(event)=>{
   renderInspector();
   drawWires();
 });
+
+function addCanvasBlock(type,position,edge){
+  if(!Object.hasOwn(blockInfo,type))return;
+  const state=graph();
+  if(state.nodes.length>=24){$('graph-status').textContent='На полотне уже 24 блока.';return;}
+  const [from,to]=edge||[];
+  const source=blockById(from);
+  const target=blockById(to);
+  if(edge&&(!source||!target||!state.edges.some(([a,b])=>a===from&&b===to)||
+    !accepts[type]?.includes(source.type)||!accepts[target.type]?.includes(type))){
+    $('graph-status').textContent='Этот блок не подходит между выбранными блоками.';
+    return;
+  }
+  const block=newBlock(type,'b'+state.serial++);
+  if(position)Object.assign(block,position);
+  state.nodes.push(block);
+  if(edge){
+    state.edges=state.edges.filter(([a,b])=>a!==from||b!==to);
+    state.edges=state.edges.filter(([a,b])=>b!==to||blockById(a)?.type!==type);
+    state.edges.push([from,block.id],[block.id,to]);
+  }
+  if(!position)selectedBlock=block.id;
+  save();
+  renderGraph(edge?'Блок вставлен в цепочку.':'Блок добавлен.');
+}
+const paletteMime='application/x-cosmo-block';
+let movingPaletteType=null;
+const canvasPanel=$('panel');
+canvasPanel.addEventListener('dragstart',(event)=>{
+  const item=event.target.closest('.library-item');
+  if(!item||!event.dataTransfer)return;
+  movingPaletteType=item.dataset.addBlock;
+  event.dataTransfer.setData(paletteMime,movingPaletteType);
+  event.dataTransfer.effectAllowed='copy';
+  canvasPanel.classList.add('palette-dragging');
+});
+function clearPaletteDrag(){
+  movingPaletteType=null;
+  canvasPanel.classList.remove('palette-dragging');
+}
+canvasPanel.addEventListener('dragend',clearPaletteDrag);
+canvasPanel.addEventListener('dragover',(event)=>{
+  if(movingPaletteType&&event.target.closest('.graph-board')){
+    event.preventDefault();
+    event.dataTransfer.dropEffect='copy';
+  }
+});
+canvasPanel.addEventListener('drop',(event)=>{
+  const board=event.target.closest('.graph-board');
+  if(!board||!movingPaletteType)return;
+  event.preventDefault();
+  const edge=event.target.closest('[data-edge]')?.dataset.edge.split(',');
+  const rect=board.getBoundingClientRect();
+  const position={
+    x:Math.max(14,Math.min(board.clientWidth-188,Math.round(event.clientX-rect.left-85))),
+    y:Math.max(14,Math.min(board.clientHeight-115,Math.round(event.clientY-rect.top-40)))
+  };
+  const type=movingPaletteType;
+  clearPaletteDrag();
+  addCanvasBlock(type,position,edge);
+});
+
+const geminiConnection={worker:'https://cosmo-api.t4421874.workers.dev',access:''};
+function wireGeminiControls(node){
+  const worker=$('gemini-worker');
+  const access=$('gemini-access');
+  const generate=$('gemini-generate');
+  const apply=$('gemini-apply');
+  const status=$('block-result');
+  worker.value=geminiConnection.worker;
+  access.value=geminiConnection.access;
+  worker.oninput=()=>{geminiConnection.worker=worker.value;};
+  access.oninput=()=>{geminiConnection.access=access.value;};
+  let suggestion=null;
+  generate.onclick=async()=>{
+    suggestion=null;
+    apply.hidden=true;
+    const prompt=$('block-prompt').value.trim();
+    if(active.type!=='site'&&active.type!=='app'){status.textContent='Gemini сейчас подключён для сайтов и веб-приложений.';return;}
+    if(!prompt){status.textContent='Напиши, что создать или изменить.';return;}
+    let base;
+    try{
+      base=new URL(worker.value.trim());
+      if(base.protocol!=='https:'||!base.hostname.endsWith('.workers.dev')||base.username||base.password)throw Error();
+    }catch{status.textContent='Укажи HTTPS-адрес своего Worker на workers.dev.';return;}
+    const token=access.value.trim();
+    if(!token){status.textContent='Открой «Подключение Gemini» и введи свой код доступа.';return;}
+    const project=active;
+    const before=graphPreview(node.id)?.source||'';
+    const agent=graphInput(node,'agent');
+    const design=graphInput(node,'design')||graphInput(agent,'design');
+    generate.disabled=true;
+    status.textContent='Gemini готовит ответ…';
+    try{
+      const response=await fetch(new URL('/generate',base),{
+        method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({prompt,currentCode:before,design:JSON.stringify({theme:design?.style||project.style,instructions:agent?.description?.slice(0,1300)||''})}),
+        signal:AbortSignal.timeout(65000)
+      });
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||'Worker вернул ошибку '+response.status+'.');
+      if(typeof result.message!=='string'||typeof result.html!=='string')throw new Error('Worker вернул неожиданный ответ.');
+      if(active!==project||$('gemini-generate')!==generate)return;
+      suggestion=result.html.trim()?{html:result.html,before}:null;
+      status.textContent=result.message||(suggestion?'Код готов к применению.':'Gemini не вернул код.');
+      apply.hidden=!suggestion;
+    }catch(error){
+      status.textContent=error instanceof SyntaxError?'Worker не вернул JSON. Проверь, что код обработчика опубликован.':(error.message==='Failed to fetch'?'Не удалось связаться с Worker. Проверь адрес и публикацию.':error.message);
+    }finally{generate.disabled=false;}
+  };
+  apply.onclick=()=>{
+    if(!suggestion)return;
+    if(suggestion.before!==(graphPreview(node.id)?.source||'')){
+      status.textContent='Код изменился после запроса. Запроси новую версию.';
+      apply.hidden=true;
+      suggestion=null;
+      return;
+    }
+    node.source=suggestion.html;
+    $('block-source').value=suggestion.html;
+    delete active.canvasOutput;
+    save();
+    suggestion=null;
+    apply.hidden=true;
+    status.textContent='Код применён. Открой предпросмотр, чтобы проверить результат.';
+  };
+}
 
 document.querySelectorAll("img[data-cosmo]").forEach(img => { img.src=bundledCosmo; });
 </script>
